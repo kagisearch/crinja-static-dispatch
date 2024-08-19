@@ -1,0 +1,8 @@
+name:
+version:
+
+dependencies:
+  crinja:
+    github: straight-shoota/crinja
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
