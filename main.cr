@@ -1,8 +1,7 @@
 require "crinja"
-require "sqlite3"
-require "json"
 
-TYPES_COUNT = 1000
+TYPES_COUNT     =   1
+FIELDS_PER_TYPE = 250 # 250 fields =~ 2kb struct with i64
 
 template_src = String.build do |s|
   TYPES_COUNT.times do |i|
@@ -16,10 +15,10 @@ template = Crinja::Template.new(template_src)
   @[Crinja::Attributes]
   struct Test{{i}}
     include Crinja::Object::Auto
-    include JSON::Serializable
-    include DB::Serializable
-    getter a : Int32 = {{i}}
-    getter b : String = {{i.stringify}}
+
+    {% for j in 0..FIELDS_PER_TYPE %}
+      getter field{{j}} : Int64 = {{j}}
+    {% end %}
 
     def initialize
     end
@@ -36,4 +35,7 @@ array = nil
   array = {{ lit }}
 {% end %}
 
-puts(template.render({items: array}))
+{% for i in 0..TYPES_COUNT %}
+  template.render({item: Test{{i}}.new})
+  template.render({item: [Test{{i}}.new]})
+{% end %}
