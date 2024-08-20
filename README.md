@@ -4,6 +4,8 @@ The case study is built on [`crinja`](https://github.com/straight-shoota/crinja)
 
 ## Case Study
 
+### First Report
+
 At Kagi, we have been building on top of Crinja for a while now, but we noticed an impact on our build times soon after we had started implementing it into our framework.
 I quickly did an analysis as best I could and wrote an [initial report](https://gist.github.com/z64/e51dd07a5c3ef5418590945bd4eecdb4).
 
@@ -16,6 +18,8 @@ Most of the rest of this article will assume you have read this report, but in s
 My prognosis was that the cost that we were paying was either a "one-time fee" or otherwise would grow at a much slower rate.
 But it turned out when I repeat the test from my original report today, this cost we were paying had more than doubled.
 Removing the largest Crinja functions from our binary brought back 30s+ of dev build time.
+
+### Second Attempt
 
 At time of writing, we exported some 50 types to Crinja via the `include Crinja::Object`(`::Auto`) mechanism.
 On my machine, as a baseline, build times were on average 60-70s.
@@ -63,6 +67,8 @@ Let's add another type.
 ```
 
 That's almost 4MB! And my build time almost immediately went to 60s. What happened!?
+
+### Cause, Analysis... and workaround!
 
 The type I added back to the build was something called `QueryCtx`.
 It is a foundational type of our framework that is a grab-bag of anything you would want to know about the request, from the HTTP request details, session details such as a the current user and their billing state, and a bunch of common utility functions.
@@ -119,13 +125,17 @@ end
 
 `QueryCtx` was no longer a `Crinja::Object`. But, our templates still had access to it, and our build times were relieved.
 
-The interesting bit: Now that I had this proxy type, I discovered that I could change it to `struct` and immediately get the regressed build times back.
+### Conclusion
+
+The interesting bit to me was that now that I had this proxy type, I discovered that I could change it to `struct` and immediately get the regressed build times back.
 To me this was a clear signal that it has something to do with value size alone, and not necessarily any of the implementation details of `QueryCtx`.
 
 This is roughly about as far as I've gotten so far.
 I have squinted at the LLVM IR of both `struct` and `class` versions and nothing jumped out at me.
 In fact, in the largest function cited from `nm`, the IR for that function was about a thousand lines shorter in the slower build with `struct` than the faster one with `class`.
 (Of course, it is not a hard rule that more IR = slower to build, but it is *usually* the case IME)
+
+[*Continuing in the Crystal Discord*](https://discord.com/channels/591460182777790474/1271123999103127615/1275378738372280322) ([invite](https://discord.gg/YS7YvQy))
 
 ## This repo
 
